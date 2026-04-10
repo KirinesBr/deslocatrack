@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeslocaTrack | Uber & Despesas</title>
+    
+    <!-- PWA Setup -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121214">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- HEADER -->
+        <header class="app-header">
+            <h2>DeslocaTrack</h2>
+            <div class="header-action">
+                <i class="ri-car-line"></i>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="content-area">
+
+            <!-- TAB 1: DASHBOARD -->
+            <section id="tab-dashboard" class="tab-content active">
+                <div class="dashboard-cards">
+                    <div class="card main-card glass">
+                        <div style="display:flex; justify-content:center; align-items:center; gap:0.5rem">
+                            <span class="card-label">Saldo Líquido</span>
+                            <span id="lbl-margin" style="background: rgba(16,185,129,0.2); color:#10b981; padding: 2px 8px; border-radius:12px; font-size: 0.75rem; font-weight:600; display:none;">0% Margem</span>
+                        </div>
+                        <h1 id="lbl-net-balance">R$ 0,00</h1>
+                    </div>
+                    
+                    <div class="card-row">
+                        <div class="card side-card glass income-card">
+                            <i class="ri-arrow-up-circle-fill"></i>
+                            <div class="card-info">
+                                <span class="card-label">Uber</span>
+                                <h3 id="lbl-total-income">R$ 0,00</h3>
+                            </div>
+                        </div>
+                        <div class="card side-card glass expense-card">
+                            <i class="ri-arrow-down-circle-fill"></i>
+                            <div class="card-info">
+                                <span class="card-label">Despesas</span>
+                                <h3 id="lbl-total-expense">R$ 0,00</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECONARY METRICS ROW -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem;">
+                    <div class="glass" style="padding: 1rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.3rem;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted);"><i class="ri-route-line"></i> Total Rodado (Mês)</span>
+                        <span id="lbl-km-month" style="font-weight: 600; font-size: 1.2rem;">0.0 <small style="font-size: 0.8rem; color: var(--text-muted);">KM</small></span>
+                    </div>
+                    <div class="glass" style="padding: 1rem; border-radius: 12px; display: flex; flex-direction: column; gap: 0.3rem;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted);"><i class="ri-gas-station-fill"></i> Impacto Combust.</span>
+                        <span id="lbl-fuel-bite" style="font-weight: 600; font-size: 1.2rem; color: var(--expense);">0.0 <small style="font-size: 0.8rem; color: var(--text-muted);">%</small></span>
+                    </div>
+                </div>
+
+                <!-- CHART SECTION -->
+                <div class="chart-section" style="margin-top: 1.5rem;">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <h3>Balanço</h3>
+                        <div class="switch-tabs" style="transform: scale(0.85); transform-origin: right;">
+                            <button type="button" class="switch-tab active" id="chart-tab-month">Mês</button>
+                            <button type="button" class="switch-tab" id="chart-tab-day">Dia</button>
+                        </div>
+                    </div>
+                    <div class="glass" style="padding: 1rem; border-radius: 12px; position: relative; height: 200px;">
+                        <canvas id="balanceChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="transactions-section">
+                    <div class="section-header">
+                        <h3>Transações Recentes</h3>
+                    </div>
+                    <div id="transactions-list" class="transactions-list">
+                        <!-- Transactions will go here -->
+                        <div class="empty-state">Sem transações no momento.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: ADD TRANSACTION -->
+            <section id="tab-add" class="tab-content">
+                <div class="glass form-card">
+                    <h3>Nova Transação</h3>
+                    
+                    <!-- Toggle Receita / Despesa -->
+                    <div class="type-toggle">
+                        <input type="radio" id="type-income" name="tx-type" value="income" checked>
+                        <label for="type-income" class="toggle-btn btn-income">Uber</label>
+                        
+                        <input type="radio" id="type-expense" name="tx-type" value="expense">
+                        <label for="type-expense" class="toggle-btn btn-expense">Despesa</label>
+                    </div>
+
+                    <form id="transaction-form">
+                        <!-- Category Input -->
+                        <div class="form-group" id="group-category" style="display: none;">
+                            <label>Categoria</label>
+                            <div class="category-grid">
+                                <input type="radio" name="tx-category" id="cat-fuel" value="fuel" checked>
+                                <label for="cat-fuel" class="cat-btn"><i class="ri-gas-station-fill"></i> Combustível</label>
+                                
+                                <input type="radio" name="tx-category" id="cat-parking" value="parking">
+                                <label for="cat-parking" class="cat-btn"><i class="ri-parking-box-fill"></i> Estacion.</label>
+                                
+                                <input type="radio" name="tx-category" id="cat-maintenance" value="maintenance">
+                                <label for="cat-maintenance" class="cat-btn"><i class="ri-tools-fill"></i> Manutenção</label>
+                                
+                                <input type="radio" name="tx-category" id="cat-cleaning" value="cleaning">
+                                <label for="cat-cleaning" class="cat-btn"><i class="ri-sparkling-fill"></i> Limpeza</label>
+
+                                <input type="radio" name="tx-category" id="cat-ipva" value="ipva">
+                                <label for="cat-ipva" class="cat-btn"><i class="ri-file-list-3-fill"></i> IPVA/Taxa</label>
+                            </div>
+                        </div>
+
+                        <!-- Amount Logic (Fuel vs Money) -->
+                        <div class="form-group amount-switcher" id="fuel-switcher" style="display: none;">
+                            <label>Como deseja registrar o combustível?</label>
+                            <div class="switch-tabs">
+                                <button type="button" class="switch-tab active" data-target="ammount-money">Em R$</button>
+                                <button type="button" class="switch-tab" data-target="ammount-km">Por KM</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="input-money">
+                            <label>Valor (R$)</label>
+                            <input type="number" id="tx-money" step="0.01" placeholder="Ex: 50.00" required>
+                        </div>
+
+                        <div class="form-group" id="input-km" style="display: none;">
+                            <label>Distância Percorrida (KM)</label>
+                            <input type="number" id="tx-km" step="0.1" placeholder="Ex: 15.5">
+                            
+                            <div style="display: flex; gap: 0.8rem; margin-top: 1rem; width: 100%;">
+                                <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 0;">
+                                    <label style="font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Veículo (KM/L)</label>
+                                    <input type="number" id="cfg-km-l" step="0.1" placeholder="10.5" style="min-width: 0; padding: 0.8rem;" required>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 0;">
+                                    <label style="font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Preço/L (R$)</label>
+                                    <input type="number" id="cfg-price" step="0.01" placeholder="5.80" style="min-width: 0; padding: 0.8rem;" required>
+                                </div>
+                            </div>
+
+                            <div class="calculated-preview" id="km-preview" style="margin-top: 1rem;">R$ 0,00 calculado</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Data</label>
+                            <input type="date" id="tx-date" required>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Salvar Transação</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- TAB 3: SETTINGS -->
+            <section id="tab-settings" class="tab-content">
+                <div class="glass form-card">
+                    <h3>Configurações do Veículo</h3>
+                    <p class="subtitle" style="font-size: 0.85rem; color: var(--text-muted);">As configurações de preço de combustível agora ficam embutidas diretamente na aba de Nova Despesa visando praticidade.</p>
+                </div>
+                
+                <div class="actions-card glass" style="margin-top: 1rem;">
+                    <button id="btn-clear-data" class="btn-danger"><i class="ri-delete-bin-line"></i> Apagar Todos os Dados</button>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- BOTTOM NAVIGATION -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-tab="tab-dashboard">
+                <i class="ri-dashboard-line"></i>
+                <span>Painel</span>
+            </button>
+            <button class="nav-item fab" data-tab="tab-add">
+                <div class="fab-inner">
+                    <i class="ri-add-line"></i>
+                </div>
+            </button>
+            <button class="nav-item" data-tab="tab-settings">
+                <i class="ri-settings-3-line"></i>
+                <span>Configs</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- PWA Prompt UI (Optional) -->
+    <div id="pwa-install-prompt" class="pwa-prompt glass" style="display: none;">
+        <div class="pwa-content">
+            <i class="ri-download-cloud-2-line"></i>
+            <div>
+                <h4>Instalar Aplicativo</h4>
+                <p>Adicione à tela inicial para acesso rápido offline.</p>
+            </div>
+            <button id="btn-install" class="btn-pwa">Instalar</button>
+            <button id="btn-close-pwa" class="btn-icon"><i class="ri-close-line"></i></button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
