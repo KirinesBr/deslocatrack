@@ -279,8 +279,16 @@ function setupEventListeners() {
     // Category Change (Check if fuel)
     const catInputs = document.querySelectorAll('input[name="tx-category"]');
     catInputs.forEach(radio => {
-        radio.addEventListener('change', () => {
+        radio.addEventListener('change', (e) => {
             checkFuelMode();
+            if (e.target.value === 'parking') {
+                txMoney.placeholder = 'Ex: 20.00';
+                if (!txMoney.value) {
+                    txMoney.value = '20.00';
+                }
+            } else {
+                txMoney.placeholder = 'Ex: 50.00';
+            }
         });
     });
 
@@ -363,6 +371,8 @@ function setupEventListeners() {
         // Reset form
         formTransaction.reset();
         txDate.valueAsDate = new Date();
+        document.getElementById('cfg-km-l').value = settings.km_l;
+        document.getElementById('cfg-price').value = settings.price_l;
         typeIncome.checked = true;
         groupCategory.style.display = 'none';
         fuelSwitcher.style.display = 'none';
