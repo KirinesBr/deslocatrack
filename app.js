@@ -681,24 +681,24 @@ function setupEventListeners() {
             });
         }
 
-        // CSV Export & Import
-        const btnExportCsv = document.getElementById('btn-export-csv');
-        const btnImportCsv = document.getElementById('btn-import-csv');
-        const fileImportCsv = document.getElementById('file-import-csv');
+        // // CSV Export & Import
+        // const btnExportCsv = document.getElementById('btn-export-csv');
+        // const btnImportCsv = document.getElementById('btn-import-csv');
+        // const fileImportCsv = document.getElementById('file-import-csv');
 
-        if (btnExportCsv) {
-            btnExportCsv.addEventListener('click', exportTransactionsCSV);
-        }
+        // if (btnExportCsv) {
+        //     btnExportCsv.addEventListener('click', exportTransactionsCSV);
+        // }
 
-        if (btnImportCsv && fileImportCsv) {
-            btnImportCsv.addEventListener('click', () => fileImportCsv.click());
-            fileImportCsv.addEventListener('change', (e) => {
-                if (e.target.files && e.target.files[0]) {
-                    importTransactionsCSV(e.target.files[0]);
-                    e.target.value = '';
-                }
-            });
-        }
+        // if (btnImportCsv && fileImportCsv) {
+        //     btnImportCsv.addEventListener('click', () => fileImportCsv.click());
+        //     fileImportCsv.addEventListener('change', (e) => {
+        //         if (e.target.files && e.target.files[0]) {
+        //             importTransactionsCSV(e.target.files[0]);
+        //             e.target.value = '';
+        //         }
+        //     });
+        // }
 
         // Clear Data
         btnClearData.addEventListener('click', () => {
@@ -715,122 +715,122 @@ function setupEventListeners() {
         });
     }
 
-// --- CSV EXPORT & IMPORT LOGIC ---
-function exportTransactionsCSV() {
-    if (transactions.length === 0) {
-        alert("Nenhuma transação encontrada para exportar.");
-        return;
-    }
+// // --- CSV EXPORT & IMPORT LOGIC ---
+// function exportTransactionsCSV() {
+//     if (transactions.length === 0) {
+//         alert("Nenhuma transação encontrada para exportar.");
+//         return;
+//     }
 
-    const BOM = "\uFEFF"; // UTF-8 BOM for Excel compatibility
-    let csvContent = BOM + "ID;Data;Tipo;Categoria;Valor_R$;KM_Original\n";
+//     const BOM = "\uFEFF"; // UTF-8 BOM for Excel compatibility
+//     let csvContent = BOM + "ID;Data;Tipo;Categoria;Valor_R$;KM_Original\n";
 
-    transactions.forEach(tx => {
-        const id = tx.id || '';
-        const date = tx.date || '';
-        const type = tx.type === 'income' ? 'Receita' : 'Despesa';
-        const category = tx.category || '';
-        const amount = (tx.amount || 0).toFixed(2).replace('.', ',');
-        const km = (tx.originalKm || 0).toFixed(1).replace('.', ',');
+//     transactions.forEach(tx => {
+//         const id = tx.id || '';
+//         const date = tx.date || '';
+//         const type = tx.type === 'income' ? 'Receita' : 'Despesa';
+//         const category = tx.category || '';
+//         const amount = (tx.amount || 0).toFixed(2).replace('.', ',');
+//         const km = (tx.originalKm || 0).toFixed(1).replace('.', ',');
 
-        csvContent += `${id};${date};${type};${category};${amount};${km}\n`;
-    });
+//         csvContent += `${id};${date};${type};${category};${amount};${km}\n`;
+//     });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const today = new Date().toISOString().split('T')[0];
-    link.setAttribute('href', url);
-    link.setAttribute('download', `deslocatrack_backup_${today}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-}
+//     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+//     const url = URL.createObjectURL(blob);
+//     const link = document.createElement('a');
+//     const today = new Date().toISOString().split('T')[0];
+//     link.setAttribute('href', url);
+//     link.setAttribute('download', `deslocatrack_backup_${today}.csv`);
+//     document.body.appendChild(link);
+//     link.click();
+//     document.body.removeChild(link);
+//     URL.revokeObjectURL(url);
+// }
 
-function importTransactionsCSV(file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const content = e.target.result;
-            const lines = content.split(/\r\n|\n/);
+// function importTransactionsCSV(file) {
+//     const reader = new FileReader();
+//     reader.onload = function(e) {
+//         try {
+//             const content = e.target.result;
+//             const lines = content.split(/\r\n|\n/);
             
-            if (lines.length <= 1) {
-                alert("O arquivo CSV está vazio ou em formato inválido.");
-                return;
-            }
+//             if (lines.length <= 1) {
+//                 alert("O arquivo CSV está vazio ou em formato inválido.");
+//                 return;
+//             }
 
-            const firstLine = lines[0];
-            const delimiter = firstLine.includes(';') ? ';' : ',';
+//             const firstLine = lines[0];
+//             const delimiter = firstLine.includes(';') ? ';' : ',';
 
-            let importedCount = 0;
-            const newTransactions = [...transactions];
+//             let importedCount = 0;
+//             const newTransactions = [...transactions];
 
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
+//             for (let i = 1; i < lines.length; i++) {
+//                 const line = lines[i].trim();
+//                 if (!line) continue;
 
-                const cols = line.split(delimiter);
-                if (cols.length < 4) continue;
+//                 const cols = line.split(delimiter);
+//                 if (cols.length < 4) continue;
 
-                let id, date, typeStr, category, amountStr, kmStr;
+//                 let id, date, typeStr, category, amountStr, kmStr;
 
-                if (cols.length >= 6) {
-                    id = cols[0].trim();
-                    date = cols[1].trim();
-                    typeStr = cols[2].trim().toLowerCase();
-                    category = cols[3].trim().toLowerCase();
-                    amountStr = cols[4].trim();
-                    kmStr = cols[5].trim();
-                } else {
-                    date = cols[0].trim();
-                    typeStr = cols[1].trim().toLowerCase();
-                    category = cols[2].trim().toLowerCase();
-                    amountStr = cols[3].trim();
-                    kmStr = cols[4] ? cols[4].trim() : '0';
-                }
+//                 if (cols.length >= 6) {
+//                     id = cols[0].trim();
+//                     date = cols[1].trim();
+//                     typeStr = cols[2].trim().toLowerCase();
+//                     category = cols[3].trim().toLowerCase();
+//                     amountStr = cols[4].trim();
+//                     kmStr = cols[5].trim();
+//                 } else {
+//                     date = cols[0].trim();
+//                     typeStr = cols[1].trim().toLowerCase();
+//                     category = cols[2].trim().toLowerCase();
+//                     amountStr = cols[3].trim();
+//                     kmStr = cols[4] ? cols[4].trim() : '0';
+//                 }
 
-                const type = (typeStr.includes('receita') || typeStr.includes('income') || typeStr.includes('uber')) ? 'income' : 'expense';
+//                 const type = (typeStr.includes('receita') || typeStr.includes('income') || typeStr.includes('uber')) ? 'income' : 'expense';
 
-                const amount = parseFloat(amountStr.replace('R$', '').replace(' ', '').replace(',', '.')) || 0;
-                const km = parseFloat(kmStr.replace(',', '.')) || 0;
+//                 const amount = parseFloat(amountStr.replace('R$', '').replace(' ', '').replace(',', '.')) || 0;
+//                 const km = parseFloat(kmStr.replace(',', '.')) || 0;
 
-                if (!date || isNaN(amount) || amount <= 0) continue;
+//                 if (!date || isNaN(amount) || amount <= 0) continue;
 
-                const txId = id ? (parseInt(id) || (Date.now() + Math.random())) : (Date.now() + Math.random());
+//                 const txId = id ? (parseInt(id) || (Date.now() + Math.random())) : (Date.now() + Math.random());
 
-                // Prevent duplicate entries
-                if (!newTransactions.some(t => t.id === txId)) {
-                    newTransactions.push({
-                        id: txId,
-                        date: date,
-                        type: type,
-                        category: category || (type === 'income' ? 'uber' : 'fuel'),
-                        amount: amount,
-                        originalKm: km
-                    });
-                    importedCount++;
-                }
-            }
+//                 // Prevent duplicate entries
+//                 if (!newTransactions.some(t => t.id === txId)) {
+//                     newTransactions.push({
+//                         id: txId,
+//                         date: date,
+//                         type: type,
+//                         category: category || (type === 'income' ? 'uber' : 'fuel'),
+//                         amount: amount,
+//                         originalKm: km
+//                     });
+//                     importedCount++;
+//                 }
+//             }
 
-            if (importedCount > 0) {
-                transactions = newTransactions;
-                Storage.saveTransactions(transactions);
-                updateDashboard();
-                if (document.getElementById('tab-managerial')?.classList.contains('active')) {
-                    updateManagerialView();
-                }
-                alert(`✅ Sucesso! ${importedCount} transações foram importadas.`);
-            } else {
-                alert("Nenhuma nova transação válida foi encontrada no CSV (registros já existentes ou colunas inválidas).");
-            }
-        } catch (err) {
-            console.error('Erro na importação CSV:', err);
-            alert("Ocorreu um erro ao processar o arquivo CSV. Verifique a formatação.");
-        }
-    };
-    reader.readAsText(file, 'UTF-8');
-}
+//             if (importedCount > 0) {
+//                 transactions = newTransactions;
+//                 Storage.saveTransactions(transactions);
+//                 updateDashboard();
+//                 if (document.getElementById('tab-managerial')?.classList.contains('active')) {
+//                     updateManagerialView();
+//                 }
+//                 alert(`✅ Sucesso! ${importedCount} transações foram importadas.`);
+//             } else {
+//                 alert("Nenhuma nova transação válida foi encontrada no CSV (registros já existentes ou colunas inválidas).");
+//             }
+//         } catch (err) {
+//             console.error('Erro na importação CSV:', err);
+//             alert("Ocorreu um erro ao processar o arquivo CSV. Verifique a formatação.");
+//         }
+//     };
+//     reader.readAsText(file, 'UTF-8');
+// }
 
 // --- GEMINI VISION SCANNER LOGIC ---
 async function processDashboardImage(file) {
