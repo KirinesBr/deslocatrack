@@ -184,6 +184,82 @@
                 </div>
             </section>
 
+            <!-- TAB 4: VISÃO GERENCIAL -->
+            <section id="tab-managerial" class="tab-content">
+                <div class="glass form-card" style="margin-top: 0.5rem; padding: 1.2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+                        <div>
+                            <h3 style="margin-bottom: 0.2rem;">Visão Gerencial</h3>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">Métricas de custos e eficiência</span>
+                        </div>
+                        <div class="switch-tabs" style="transform: scale(0.85); transform-origin: right;">
+                            <button type="button" class="switch-tab active" id="mgr-period-month">Mês</button>
+                            <button type="button" class="switch-tab" id="mgr-period-all">Tudo</button>
+                        </div>
+                    </div>
+
+                    <!-- KPIs GRID -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1.2rem;">
+                        <div class="glass" style="padding: 1rem; border-radius: 12px; background: rgba(92, 103, 242, 0.1); border-color: rgba(92, 103, 242, 0.3);">
+                            <span style="font-size: 0.75rem; color: var(--text-muted); display: block;"><i class="ri-route-line"></i> Custo Total / KM</span>
+                            <h3 id="lbl-mgr-cost-km" style="font-size: 1.25rem; margin-top: 0.3rem; color: #fff;">R$ 0,00 <small style="font-size: 0.7rem; color: var(--text-muted);">/km</small></h3>
+                        </div>
+                        <div class="glass" style="padding: 1rem; border-radius: 12px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3);">
+                            <span style="font-size: 0.75rem; color: var(--text-muted); display: block;"><i class="ri-gas-station-fill"></i> Combustível / KM</span>
+                            <h3 id="lbl-mgr-fuel-km" style="font-size: 1.25rem; margin-top: 0.3rem; color: var(--expense);">R$ 0,00 <small style="font-size: 0.7rem; color: var(--text-muted);">/km</small></h3>
+                        </div>
+                    </div>
+
+                    <!-- COMPARATIVO VEÍCULO ELÉTRICO -->
+                    <div class="glass" style="padding: 1.2rem; border-radius: 14px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(15, 16, 20, 0.6)); border: 1px solid rgba(16, 185, 129, 0.3); margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="ri-charging-pile-2-fill" style="font-size: 1.4rem; color: var(--income);"></i>
+                                <h4 style="font-size: 0.95rem; font-weight: 600;">Comparativo Elétrico</h4>
+                            </div>
+                            <span style="background: rgba(16, 185, 129, 0.2); color: var(--income); padding: 3px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600;">R$ 0,10 / km</span>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Custo Combustível:</span>
+                                <strong id="lbl-ev-current-cost">R$ 0,00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-muted);">Simulado Elétrico:</span>
+                                <strong id="lbl-ev-simulated-cost" style="color: var(--income);">R$ 0,00</strong>
+                            </div>
+                            <div style="margin-top: 0.3rem; padding-top: 0.5rem; border-top: 1px dashed rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 500;">Economia Estimada:</span>
+                                <span id="lbl-ev-savings" style="font-size: 1.15rem; font-weight: 700; color: var(--income);">R$ 0,00</span>
+                            </div>
+                        </div>
+
+                        <!-- Bar Comparison Visual -->
+                        <div style="margin-top: 0.8rem; background: rgba(0,0,0,0.4); border-radius: 8px; height: 8px; overflow: hidden; display: flex;">
+                            <div id="bar-ev-savings" style="width: 0%; background: var(--income); transition: width 0.5s ease;"></div>
+                            <div id="bar-fuel-cost" style="width: 100%; background: var(--expense); transition: width 0.5s ease;"></div>
+                        </div>
+                        <span id="lbl-ev-percent" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.4rem; text-align: right;">0.0% de economia no combustível</span>
+                    </div>
+
+                    <!-- DESPESAS POR CATEGORIA -->
+                    <div>
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <i class="ri-pie-chart-line" style="color: var(--primary);"></i> Despesas por Categoria
+                        </h4>
+                        
+                        <div class="glass" style="padding: 1rem; border-radius: 12px; position: relative; height: 210px; display: flex; justify-content: center; align-items: center; margin-bottom: 1.2rem;">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+
+                        <div id="category-breakdown-list" style="display: flex; flex-direction: column; gap: 0.6rem;">
+                            <!-- Dynamically filled breakdown -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- TAB 3: SETTINGS -->
             <section id="tab-settings" class="tab-content">
                 <div class="glass form-card">
@@ -203,6 +279,10 @@
             <button class="nav-item active" data-tab="tab-dashboard">
                 <i class="ri-dashboard-line"></i>
                 <span>Painel</span>
+            </button>
+            <button class="nav-item" data-tab="tab-managerial">
+                <i class="ri-pie-chart-2-line"></i>
+                <span>Gerencial</span>
             </button>
             <button class="nav-item fab" data-tab="tab-add">
                 <div class="fab-inner">

@@ -46,8 +46,21 @@ const kmPreview = document.getElementById('km-preview');
 let currentInputMode = 'money'; // or 'km'
 let lastFuelInputMode = localStorage.getItem('dt_fuel_mode') || 'money';
 let currentChartMode = 'month'; // or 'day'
+let mgrPeriod = 'month'; // 'month' or 'all'
 let editingTxId = null;
 let balanceChartInstance = null;
+let mgrChartInstance = null;
+
+// Managerial DOM Elements
+const lblMgrCostKm = document.getElementById('lbl-mgr-cost-km');
+const lblMgrFuelKm = document.getElementById('lbl-mgr-fuel-km');
+const lblEvCurrentCost = document.getElementById('lbl-ev-current-cost');
+const lblEvSimulatedCost = document.getElementById('lbl-ev-simulated-cost');
+const lblEvSavings = document.getElementById('lbl-ev-savings');
+const barEvSavings = document.getElementById('bar-ev-savings');
+const barFuelCost = document.getElementById('bar-fuel-cost');
+const lblEvPercent = document.getElementById('lbl-ev-percent');
+const categoryBreakdownList = document.getElementById('category-breakdown-list');
 
 // --- INITIALIZATION ---
 function init() {
@@ -132,9 +145,234 @@ function updateDashboard() {
         lblFuelBite.innerHTML = `0.0 <small style="font-size: 0.8rem; color: var(--text-muted);">%</small>`;
     }
 
-    lblKmMonth.innerHTML = `${kmMonth.toFixed(1)} <small style="font-size: 0.8rem; color: var(--text-muted);">KM</small>`;
-    
     renderChart();
+    if (document.getElementById('tab-managerial')?.classList.contains('active')) {
+        updateManagerialView();
+    }
+}
+
+// --- VISÃO GERENCIAL ---
+function updateManagerialView() {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+
+    // Filter transactions by period
+    const filtered = transactions.filter(tx => {
+        if (mgrPeriod === 'all') return true;
+        if (!tx.date) return false;
+        const parts = tx.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    });
+
+    let totalExpense = 0;
+    let fuelExpense = 0;
+    let recordedKm = 0;
+    let unrecordedFuelMoney = 0;
+
+    const categoryTotals = {
+        fuel: 0,
+        parking: 0,
+        maintenance: 0,
+        cleaning: 0,
+        ipva: 0
+    };
+
+    filtered.forEach(tx => {
+        if (tx.type === 'expense') {
+            totalExpense += tx.amount;
+            if (categoryTotals[tx.category] !== undefined) {
+                categoryTotals[tx.category] += tx.amount;
+            }
+            if (tx.category === 'fuel') {
+                fuelExpense += tx.amount;
+                if (tx.originalKm > 0) {
+                    recordedKm += tx.originalKm;
+                } else {
+                    unrecordedFuelMoney += tx.amount;
+                }
+            }
+        }
+    });
+
+    // Estimate KM for fuel entries recorded in money without KM value
+    const kmPerLiter = settings.km_l || 10;
+    const pricePerLiter = settings.price_l || 5.50;
+    const estimatedKm = (unrecordedFuelMoney / pricePerLiter) * kmPerLiter;
+
+    const effectiveKm = recordedKm + estimatedKm;
+
+    // 1. Custo Total / KM & Combustível / KM
+    if (effectiveKm > 0) {
+        const costPerKm = totalExpense / effectiveKm;
+        const fuelPerKm = fuelExpense / effectiveKm;
+        if (lblMgrCostKm) lblMgrCostKm.innerHTML = `${formatMoney(costPerKm)} <small style="font-size: 0.7rem; color: var(--text-muted);">/km</small>`;
+        if (lblMgrFuelKm) lblMgrFuelKm.innerHTML = `${formatMoney(fuelPerKm)} <small style="font-size: 0.7rem; color: var(--text-muted);">/km</small>`;
+    } else {
+        if (lblMgrCostKm) lblMgrCostKm.innerHTML = `R$ 0,00 <small style="font-size: 0.7rem; color: var(--text-muted);">/km</small>`;
+        if (lblMgrFuelKm) lblMgrFuelKm.innerHTML = `R$ 0,00 <small style="font-size: 0.7rem; color: var(--text-muted);">/km</small>`;
+    }
+
+    // 2. Comparativo Elétrico (R$ 0,10 / KM rodado)
+    const evRate = 0.10;
+    const simulatedEvCost = effectiveKm * evRate;
+    const savings = Math.max(0, fuelExpense - simulatedEvCost);
+    const savingsPercent = fuelExpense > 0 ? ((savings / fuelExpense) * 100) : 0;
+
+    if (lblEvCurrentCost) lblEvCurrentCost.textContent = formatMoney(fuelExpense);
+    if (lblEvSimulatedCost) lblEvSimulatedCost.textContent = formatMoney(simulatedEvCost);
+    if (lblEvSavings) lblEvSavings.textContent = formatMoney(savings);
+
+    if (barEvSavings && barFuelCost && lblEvPercent) {
+        if (fuelExpense > 0) {
+            const pctSavings = Math.min(100, Math.max(0, savingsPercent));
+            barEvSavings.style.width = `${pctSavings}%`;
+            barFuelCost.style.width = `${100 - pctSavings}%`;
+            lblEvPercent.textContent = `${savingsPercent.toFixed(1)}% de economia em relação ao combustível`;
+        } else {
+            barEvSavings.style.width = `0%`;
+            barFuelCost.style.width = `100%`;
+            lblEvPercent.textContent = `Sem gastos de combustível no período`;
+        }
+    }
+
+    // 3. Charts & List
+    renderCategoryChart(categoryTotals, totalExpense);
+    renderCategoryList(categoryTotals, totalExpense);
+}
+
+function renderCategoryList(totals, totalExp) {
+    if (!categoryBreakdownList) return;
+    categoryBreakdownList.innerHTML = '';
+
+    const catDetails = [
+        { key: 'fuel', label: 'Combustível', icon: 'ri-gas-station-fill', color: '#ef4444' },
+        { key: 'parking', label: 'Estacionamento', icon: 'ri-parking-box-fill', color: '#f59e0b' },
+        { key: 'maintenance', label: 'Manutenção', icon: 'ri-tools-fill', color: '#6366f1' },
+        { key: 'cleaning', label: 'Limpeza & Lavagem', icon: 'ri-sparkling-fill', color: '#0ea5e9' },
+        { key: 'ipva', label: 'IPVA & Taxas', icon: 'ri-file-list-3-fill', color: '#d946ef' }
+    ];
+
+    if (totalExp === 0) {
+        categoryBreakdownList.innerHTML = '<div class="empty-state">Nenhuma despesa registrada no período.</div>';
+        return;
+    }
+
+    catDetails.forEach(cat => {
+        const val = totals[cat.key] || 0;
+        if (val > 0) {
+            const pct = ((val / totalExp) * 100).toFixed(1);
+            const item = document.createElement('div');
+            item.className = 'glass';
+            item.style.padding = '0.8rem 1rem';
+            item.style.borderRadius = '10px';
+            item.style.display = 'flex';
+            item.style.justifyContent = 'space-between';
+            item.style.alignItems = 'center';
+            item.style.background = 'rgba(255, 255, 255, 0.02)';
+
+            item.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: ${cat.color}22; color: ${cat.color}; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                        <i class="${cat.icon}"></i>
+                    </div>
+                    <div>
+                        <h5 style="font-size: 0.85rem; font-weight: 500; color: #fff;">${cat.label}</h5>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">${pct}% das despesas</span>
+                    </div>
+                </div>
+                <strong style="font-size: 0.95rem; color: #fff;">${formatMoney(val)}</strong>
+            `;
+            categoryBreakdownList.appendChild(item);
+        }
+    });
+}
+
+function renderCategoryChart(totals, totalExp) {
+    const ctx = document.getElementById('categoryChart');
+    if (!ctx) return;
+
+    if (mgrChartInstance) {
+        mgrChartInstance.destroy();
+    }
+
+    if (totalExp === 0) {
+        mgrChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Sem despesas'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['rgba(255, 255, 255, 0.08)'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+        return;
+    }
+
+    const labels = [];
+    const data = [];
+    const colors = [];
+
+    const colorMap = {
+        fuel: '#ef4444',
+        parking: '#f59e0b',
+        maintenance: '#6366f1',
+        cleaning: '#0ea5e9',
+        ipva: '#d946ef'
+    };
+
+    const labelMap = {
+        fuel: 'Combustível',
+        parking: 'Estacionamento',
+        maintenance: 'Manutenção',
+        cleaning: 'Limpeza',
+        ipva: 'IPVA/Taxas'
+    };
+
+    Object.keys(totals).forEach(key => {
+        if (totals[key] > 0) {
+            labels.push(labelMap[key]);
+            data.push(totals[key]);
+            colors.push(colorMap[key]);
+        }
+    });
+
+    mgrChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderColor: '#1c1e24',
+                borderWidth: 2,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: '#9aa0a6',
+                        font: { family: 'Outfit', size: 11 },
+                        boxWidth: 12,
+                        padding: 8
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
 }
 
 function createTransactionElement(tx) {
@@ -242,8 +480,27 @@ function setupEventListeners() {
             document.getElementById(btn.dataset.tab).classList.add('active');
             
             if(btn.dataset.tab === 'tab-dashboard') updateDashboard();
+            if(btn.dataset.tab === 'tab-managerial') updateManagerialView();
         });
     });
+
+    // Managerial Period Toggle
+    const mgrPeriodMonth = document.getElementById('mgr-period-month');
+    const mgrPeriodAll = document.getElementById('mgr-period-all');
+    if (mgrPeriodMonth && mgrPeriodAll) {
+        mgrPeriodMonth.addEventListener('click', () => {
+            mgrPeriodMonth.classList.add('active');
+            mgrPeriodAll.classList.remove('active');
+            mgrPeriod = 'month';
+            updateManagerialView();
+        });
+        mgrPeriodAll.addEventListener('click', () => {
+            mgrPeriodAll.classList.add('active');
+            mgrPeriodMonth.classList.remove('active');
+            mgrPeriod = 'all';
+            updateManagerialView();
+        });
+    }
 
     // Chart toggle logic
     const chartTabMonth = document.getElementById('chart-tab-month');
