@@ -104,12 +104,19 @@
                         <div class="empty-state">Sem transações no momento.</div>
                     </div>
                 </div>
-            </section>
-
-            <!-- TAB 2: ADD TRANSACTION -->
+            </se            <!-- TAB 2: ADD TRANSACTION -->
             <section id="tab-add" class="tab-content">
                 <div class="glass form-card">
-                    <h3>Nova Transação</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="margin-bottom: 0;">Nova Transação</h3>
+                    </div>
+
+                    <!-- AI Dashboard Scanner Button -->
+                    <button type="button" id="btn-scan-dashboard" class="btn-scan-ia">
+                        <i class="ri-camera-lens-line"></i>
+                        <span>Escanear Painel com IA Gemini</span>
+                    </button>
+                    <input type="file" id="file-dashboard" accept="image/*" capture="environment" style="display: none;">
                     
                     <!-- Toggle Receita / Despesa -->
                     <div class="type-toggle">
@@ -264,7 +271,26 @@
             <section id="tab-settings" class="tab-content">
                 <div class="glass form-card">
                     <h3>Configurações do Veículo</h3>
-                    <p class="subtitle" style="font-size: 0.85rem; color: var(--text-muted);">As configurações de preço de combustível agora ficam embutidas diretamente na aba de Nova Despesa visando praticidade.</p>
+                    <p class="subtitle" style="font-size: 0.85rem; color: var(--text-muted);">As configurações de preço de combustível ficam embutidas diretamente na aba de Nova Despesa visando praticidade.</p>
+                </div>
+
+                <div class="glass form-card" style="margin-top: 1rem;">
+                    <h3><i class="ri-sparkles-line" style="color: #a855f7;"></i> IA Gemini Vision</h3>
+                    <p class="subtitle" style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
+                        Insira sua chave gratuita da API do Google Gemini para ler fotos de painéis de veículos automaticamente.
+                    </p>
+                    <div class="form-group">
+                        <label>Chave da API Gemini (Gratuita)</label>
+                        <input type="password" id="cfg-gemini-key" placeholder="AIzaSy..." style="font-family: monospace;">
+                        <span class="helper-text" style="margin-top: 0.3rem;">
+                            <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #c084fc; text-decoration: underline;">
+                                Obter chave gratuita no Google AI Studio <i class="ri-external-link-line"></i>
+                            </a>
+                        </span>
+                    </div>
+                    <button type="button" id="btn-save-gemini-key" class="btn-primary" style="margin-top: 0.5rem; background: linear-gradient(135deg, #7e22ce, #6366f1);">
+                        Salvar Chave Gemini
+                    </button>
                 </div>
                 
                 <div class="actions-card glass" style="margin-top: 1rem;">
@@ -310,6 +336,15 @@
         </div>
     </div>
 
-    <script src="app.js?v=5"></script>
+    <!-- Loading Overlay for Gemini AI -->
+    <div id="ai-loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <div style="text-align: center;">
+            <h4 style="font-size: 1.1rem; color: #fff; font-weight: 600;">Processando Imagem...</h4>
+            <p style="font-size: 0.85rem; color: #c084fc; margin-top: 0.3rem;">A IA Gemini está analisando o painel do veículo</p>
+        </div>
+    </div>
+
+    <script src="app.js?v=6"></script>
 </body>
 </html>

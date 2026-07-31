@@ -4,9 +4,12 @@ const Storage = {
     saveTransactions: (txs) => localStorage.setItem('dt_transactions', JSON.stringify(txs)),
     getSettings: () => JSON.parse(localStorage.getItem('dt_settings')) || { km_l: 10, price_l: 5.50 },
     saveSettings: (cfg) => localStorage.setItem('dt_settings', JSON.stringify(cfg)),
+    getGeminiKey: () => localStorage.getItem('dt_gemini_key') || '',
+    saveGeminiKey: (key) => localStorage.setItem('dt_gemini_key', key),
     clearAll: () => {
         localStorage.removeItem('dt_transactions');
         localStorage.removeItem('dt_settings');
+        localStorage.removeItem('dt_gemini_key');
     }
 };
 
@@ -70,6 +73,11 @@ function init() {
     // Load Settings into form
     document.getElementById('cfg-km-l').value = settings.km_l;
     document.getElementById('cfg-price').value = settings.price_l;
+
+    const cfgGeminiKey = document.getElementById('cfg-gemini-key');
+    if (cfgGeminiKey) {
+        cfgGeminiKey.value = Storage.getGeminiKey();
+    }
 
     updateDashboard();
     setupEventListeners();
@@ -639,17 +647,168 @@ function setupEventListeners() {
         navItems[0].click(); 
     });
 
-    // Clear Data
-    btnClearData.addEventListener('click', () => {
-        if(confirm("Tem certeza que deseja apagar TODOS os seus registros?")) {
-            Storage.clearAll();
-            transactions = [];
-            settings = { km_l: 10, price_l: 5.50 };
-            document.getElementById('cfg-km-l').value = settings.km_l;
-            document.getElementById('cfg-price').value = settings.price_l;
-            updateDashboard();
-            alert("Dados apagados!");
+        // Save Gemini Key
+        const btnSaveGeminiKey = document.getElementById('btn-save-gemini-key');
+        const cfgGeminiKey = document.getElementById('cfg-gemini-key');
+        if (btnSaveGeminiKey && cfgGeminiKey) {
+            btnSaveGeminiKey.addEventListener('click', () => {
+                const key = cfgGeminiKey.value.trim();
+                Storage.saveGeminiKey(key);
+                alert(key ? "Chave da API Gemini salva com sucesso! O scanner de painel está pronto para uso." : "Chave da API Gemini removida.");
+            });
         }
+
+        // Scanner Buttons
+        const btnScanDashboard = document.getElementById('btn-scan-dashboard');
+        const fileDashboard = document.getElementById('file-dashboard');
+        if (btnScanDashboard && fileDashboard) {
+            btnScanDashboard.addEventListener('click', () => {
+                const apiKey = Storage.getGeminiKey();
+                if (!apiKey) {
+                    alert("Por favor, cadastre sua chave gratuita da API do Gemini na aba Configurações antes de usar o scanner!");
+                    navItems[3].click();
+                    if (cfgGeminiKey) cfgGeminiKey.focus();
+                    return;
+                }
+                fileDashboard.click();
+            });
+
+            fileDashboard.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    processDashboardImage(e.target.files[0]);
+                    e.target.value = '';
+                }
+            });
+        }
+
+        // Clear Data
+        btnClearData.addEventListener('click', () => {
+            if(confirm("Tem certeza que deseja apagar TODOS os seus registros?")) {
+                Storage.clearAll();
+                transactions = [];
+                settings = { km_l: 10, price_l: 5.50 };
+                document.getElementById('cfg-km-l').value = settings.km_l;
+                document.getElementById('cfg-price').value = settings.price_l;
+                if (cfgGeminiKey) cfgGeminiKey.value = '';
+                updateDashboard();
+                alert("Dados apagados!");
+            }
+        });
+    }
+
+// --- GEMINI VISION SCANNER LOGIC ---
+async function processDashboardImage(file) {
+    const apiKey = Storage.getGeminiKey();
+    if (!apiKey) {
+        alert("Por favor, cadastre sua chave gratuita da API do Gemini na aba Configurações antes de escanear!");
+        navItems[3].click();
+        return;
+    }
+
+    const overlay = document.getElementById('ai-loading-overlay');
+    if (overlay) overlay.style.display = 'flex';
+
+    try {
+        const base64Data = await fileToBase64(file);
+        const mimeType = file.type || 'image/jpeg';
+
+        const promptText = `Analise esta foto do painel de um veículo (carro ou caminhão).
+Extraia se visíveis:
+1. Distância percorrida em KM (trip, parcial, trecho ou odômetro).
+2. Consumo médio em KM/L.
+
+Responda APENAS com um JSON estrito no seguinte formato exato:
+{"km": 123.4, "km_l": 12.5}
+
+Se algum dos dois campos não for encontrado na imagem, retorne null nele. Não inclua NENHUM outro texto ou marcação markdown.`;
+
+        const requestBody = {
+            contents: [
+                {
+                    parts: [
+                        { text: promptText },
+                        {
+                            inline_data: {
+                                mime_type: mimeType,
+                                data: base64Data
+                            }
+                        }
+                    ]
+                }
+            ]
+        };
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errJson = await response.json().catch(() => ({}));
+            throw new Error(errJson.error?.message || `Erro na resposta da API Gemini (${response.status})`);
+        }
+
+        const data = await response.json();
+        const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        const jsonMatch = textResult.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error("Não foi possível interpretar a resposta da IA como JSON.");
+        }
+
+        const parsed = JSON.parse(jsonMatch[0]);
+
+        if (overlay) overlay.style.display = 'none';
+
+        if ((parsed.km === null || parsed.km === undefined) && (parsed.km_l === null || parsed.km_l === undefined)) {
+            alert("A IA Gemini não encontrou números de KM ou KM/L com clareza nesta foto. Tente tirar outra foto mais próxima e iluminada do painel.");
+            return;
+        }
+
+        // Apply results to form
+        typeExpense.checked = true;
+        groupCategory.style.display = 'flex';
+        document.getElementById('cat-fuel').checked = true;
+        checkFuelMode();
+
+        // Switch to KM mode
+        fuelSwitchTabs[1].click();
+
+        if (parsed.km !== null && parsed.km !== undefined && !isNaN(parsed.km)) {
+            txKm.value = parsed.km;
+        }
+
+        if (parsed.km_l !== null && parsed.km_l !== undefined && !isNaN(parsed.km_l)) {
+            document.getElementById('cfg-km-l').value = parsed.km_l;
+        }
+
+        calculateKmToMoney();
+
+        let msg = "✨ Painel Lido com Sucesso pela IA Gemini!\n\n";
+        if (parsed.km) msg += `• Distância: ${parsed.km} KM\n`;
+        if (parsed.km_l) msg += `• Consumo: ${parsed.km_l} KM/L\n`;
+        msg += "\nOs campos foram preenchidos automaticamente no formulário!";
+
+        alert(msg);
+
+    } catch (err) {
+        if (overlay) overlay.style.display = 'none';
+        console.error('Erro no Scanner Gemini:', err);
+        alert(`Erro ao analisar painel: ${err.message}`);
+    }
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result;
+            const base64 = result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
     });
 }
 
