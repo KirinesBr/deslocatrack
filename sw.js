@@ -1,4 +1,4 @@
-const CACHE_NAME = 'deslocatrack-v6';
+const CACHE_NAME = 'deslocatrack-v7';
 const LOCAL_ASSETS = [
     './',
     './index.html',
