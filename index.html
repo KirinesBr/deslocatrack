@@ -295,6 +295,24 @@
                     </button>
                 </div>
                 
+                <div class="glass form-card" style="margin-top: 1rem;">
+                    <h3><i class="ri-file-excel-line" style="color: #10b981;"></i> Backup & Dados (CSV)</h3>
+                    <p class="subtitle" style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
+                        Exporte o seu histórico de receitas e despesas para Excel/CSV ou importe um arquivo salvo anteriormente.
+                    </p>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                        <button type="button" id="btn-export-csv" class="btn-primary" style="margin-top: 0; background: linear-gradient(135deg, #059669, #10b981); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <i class="ri-download-2-line" style="font-size: 1.2rem;"></i> Exportar Relatório (CSV)
+                        </button>
+
+                        <button type="button" id="btn-import-csv" class="btn-primary" style="margin-top: 0; background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); color: #fff; box-shadow: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <i class="ri-upload-2-line" style="font-size: 1.2rem; color: #a5b4fc;"></i> Importar Arquivo (CSV)
+                        </button>
+                        <input type="file" id="file-import-csv" accept=".csv" style="display: none;">
+                    </div>
+                </div>
+                
                 <div class="actions-card glass" style="margin-top: 1rem;">
                     <button id="btn-clear-data" class="btn-danger"><i class="ri-delete-bin-line"></i> Apagar Todos os Dados</button>
                 </div>
@@ -347,6 +365,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=7"></script>
+    <script src="app.js?v=8"></script>
 </body>
 </html>
